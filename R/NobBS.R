@@ -241,7 +241,14 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
     quiet=quiet,
     progress.bar=progress.bar)
 
-  mymod.mcmc <- as.mcmc(lambda.output)
+  mymod.mcmc <-
+    if(class(lambda.output) == "mcmc.list")  {
+      do.call(rbind, lapply(lambda.output, as.mcmc))
+    } else {
+      as.mcmc(lambda.output)
+    }
+
+  # mymod.mcmc <- as.mcmc(lambda.output)
   mymod.dat <- as.data.frame(as.matrix(mymod.mcmc))
 
   # Extract all hindcasts and 95% credible intervals
@@ -279,13 +286,13 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
 
   t <- now.T
 
-  parameter_extract <- matrix(NA, nrow=specs$nSamp)
+  parameter_extract <- matrix(NA, nrow=specs$nSamp * specs$nChains)
 
   if("lambda"%in%specs$param_names){
     parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("lambda[",t,",",sep="")))))
   }
   if("beta.logged"%in%specs$param_names){
-    betas.logged<- matrix(NA,nrow=specs$nSamp,ncol=(max_D+1))
+    betas.logged<- matrix(NA,nrow=specs$nSamp * specs$nChains,ncol=(max_D+1))
     dimnames(betas.logged) = list(NULL,c(paste("Beta",c(0:max_D))))
     for(d in 0:max_D){
       betas.logged[,(d+1)] <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[",(d+1),"]",sep="")))))[,1]
